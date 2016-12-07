@@ -1,0 +1,43 @@
+# A decent default .gitignore
+# Same as GitHub's at https://github.com/github/gitignore/blob/master/Python.gitignore
+# except keeps /bin directory.
+
+*.py[co]
+
+# Packages
+*.egg
+*.egg-info
+dist
+build
+eggs
+parts
+var
+sdist
+develop-eggs
+.installed.cfg
+
+# Installer logs
+pip-log.txt
+
+# Unit test / coverage reports
+.coverage
+.tox
+
+
+#Os X Crap
+.DS_Store
+
+*.log*
+*.pot
+local_settings.py
+sqlite.db
+envvars.bat
+todo
+Scripts
+Include
+Lib
+envvars.bat
+push.bat
+.idea
+/logs
+pip-selfcheck.json
