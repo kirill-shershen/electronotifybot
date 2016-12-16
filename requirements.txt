@@ -2,3 +2,6 @@ bs4
 requests
 pyTelegramBotAPI
 flask
+dj-database-url
+psycopg2
+requests
