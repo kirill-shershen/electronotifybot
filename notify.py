@@ -111,6 +111,7 @@ def do_command(message):
     pass
 
 def check_break(func):
+    '''Проверяем что не было вызова новой операции'''
     def decorate(message):
         if message.text in cmds.keys():
             do_command(message)
@@ -238,14 +239,7 @@ def process_notify_step(message):
         bot.register_next_step_handler(message, process_notify_step)
 
 @bot.message_handler(commands=['show'])
-def show( message):
-    markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
-    btn_a = telebot.types.KeyboardButton('Подписаться')
-    btn_b = telebot.types.KeyboardButton('Показать ближайшее')
-    btn_c = telebot.types.KeyboardButton('Отписаться')
-    btn_d = telebot.types.KeyboardButton('Помощь')
-    markup.add(btn_a, btn_b)
-    markup.add(btn_c, btn_d)
+def show(message):
     user_dict[message.chat.id] = User(message.chat.id)
     user_dict[message.chat.id].show = True
     bot.send_message(message.chat.id, u'Чтобы узнать о ближайшем отключении нужно указать населенный пункт и улицу'
@@ -280,6 +274,8 @@ def webhook():
     return "!", 200
 
 if not settings.debug:
+    #устанавливать вебхук когда мы на хероку
+    webhook()
     server.run(host=settings.WEBHOOK_LISTEN, port=settings.WEBHOOK_PORT)
     server = Flask(__name__)
 else:
