@@ -7,9 +7,9 @@ URL = os.environ.get('MRSKURL')
 vary_strange_streets = [u'все', u'всё', u'быт', u'все улицы', u'все, кто будет обращаться', u'все объекты']
 class NotifyParser():
 
-    def __init__(self, city, street):
-        self.city = city
-        self.street = street
+    def __init__(self):
+        self.city = None
+        self.street = None
 
     def check_street(self, street):
         ins = False
@@ -19,12 +19,36 @@ class NotifyParser():
                 break
         return (self.street.lower() in street) or ins
 
-    def parse(self):
+    def parse(self, url):
         try:
-            r = requests.get(URL)
+            r = requests.get(url)
             soup = BeautifulSoup(r.text)
             ls = soup.find_all('tr', id=re.compile('^ufid.*'))
+            return ls
+        except:
+            return []
 
+    def get_all(self):
+        try:
+            ls = self.parse(URL)
+            if ls:
+                notify = []
+                for item in ls:
+                    city = item.contents[1].text
+                    street = item.contents[3].text
+                    date_range = item.contents[5].text
+                    reason = item.contents[7].text
+                    notify.append([city, street, date_range, reason])
+                return '', notify
+            return 'Не удалось получить информацию с сайта', []
+        except:
+            return 'ошибка при получении информации', []
+
+    def get_outage(self, city, street):
+        try:
+            self.city = city
+            self.street = street
+            ls = self.parse(URL)
             if ls:
                 notify = []
                 for item in ls:
@@ -35,7 +59,8 @@ class NotifyParser():
                             date_range = item.contents[5].text
                             reason = item.contents[7].text
                             notify.append([city, street, date_range, reason])
-            return '', notify
+                return '', notify
+            return 'Не удалось получить информацию с сайта', []
         except:
             return 'Сервис временно не доступен', []
 

@@ -4,7 +4,7 @@ from flask import Flask, request
 import settings
 import logging
 import db
-import crawler
+from crawler import NotifyParser
 from datetime import date
 
 loglevel = logging.DEBUG == settings.debug
@@ -14,6 +14,7 @@ logging.basicConfig(format='[%(asctime)s] %(filename)s:%(lineno)d %(levelname)s 
 
 COLS = [u'Населенный пункт', u'Улица', u'Время отключения', u'Причина']
 cmds = {u'Подписаться':'notify', u'Отписаться':'unnotify', u'Помощь':'start', u'Показать ближайшее':'show'}
+
 class server:
     def route(self, *args, **kwargs):
         def decorator(f):
@@ -67,7 +68,7 @@ where
             cur.execute(sql_ins)
             self.db.conn.commit()
         except:
-            self.db.rollback()
+            self.db.conn.rollback()
         finally:
             self.db.disconnect()
 
@@ -82,7 +83,7 @@ where
             cur.execute(sql_ins)
             self.db.conn.commit()
         except:
-            self.db.rollback()
+            self.db.conn.rollback()
         finally:
             self.db.disconnect()
 
@@ -193,7 +194,7 @@ def process_street_step(message):
         user.street = message.text.strip()
         user_dict[message.chat.id] = user
         if user_dict[message.chat.id].show:
-            msg, ntf = crawler.NotifyParser(user_dict[message.chat.id].city, user_dict[message.chat.id].street).parse()
+            msg, ntf = NotifyParser().get_outage(user_dict[message.chat.id].city, user_dict[message.chat.id].street)
             if msg:
                 bot.send_message(message.chat.id, msg)
             else:
@@ -275,9 +276,9 @@ def webhook():
 
 if not settings.debug:
     #устанавливать вебхук когда мы на хероку
-    webhook()
     server.run(host=settings.WEBHOOK_LISTEN, port=settings.WEBHOOK_PORT)
     server = Flask(__name__)
+    webhook()
 else:
     bot.remove_webhook()
     bot.polling()
