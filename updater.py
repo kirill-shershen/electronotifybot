@@ -4,7 +4,7 @@ from crawler import NotifyParser
 from db import db
 import re
 from datetime import datetime
-
+import user as u
 
 dates = '\d{4}-\d{2}-\d{2}|\d{2}.\d{2}.\d{4}|\d{2}.\d{2}.\d{2}|\d{2} \W* \d{4}'
 def main():
@@ -14,29 +14,15 @@ def main():
         raise msg
     try:
         dba = db()
-        dba.connect()
-        cur = dba.conn.cursor()
-        cur.execute('select * from public."UserNotify"')
-        rows = cur.fetchall()
-        usernotify = {}
-        if rows:
-            for row in rows:
-                usernotify[row[0]] = [row[4], row[1], row[2], row[3]]
-        if not rows or not usernotify:
-            print 'no records in db'
+        usernotify = u.get_notify()
         #get all outage from db
-        cur.execute('select * from public."ElectroOutage"')
-        rows = cur.fetchall()
-        outage = {}
-        if rows:
-            for row in rows:
-                outage[row[1]] = [row[2], row[3], row[4], row[5], row[6]]
+        outage = u.get_outage()
         #merge
         for user in usernotify:
             exist_list = {} # list of all notifies on site
             for notify in usernotify:
                 for l in ls:
-                    if unicode(usernotify[notify][1].decode('utf-8')).lower() in l[0].lower() and unicode(usernotify[notify][2].decode('utf-8')).lower() in l[1].lower():
+                    if unicode(usernotify[notify][1].decode('utf-8')).lower() in l[0].lower() and (unicode(usernotify[notify][2].decode('utf-8')).lower() in l[1].lower() or (usernotify[notify][2].lower() == 'все')):
                         date_line = re.findall(dates, l[2].lower())
                         if date_line[0]:
                             for old, new in [(u'января', '01'), (u'февраля', '02'), (u'марта', '03'), (u'апреля', '04'), (u'мая', '05'), (u'июня', '06'), (u'июля', '07'), (u'августа', '08'), (u'сентября', '09'), (u'октября', '10'), (u'ноября', '11'), (u'декабря', '12')]:
@@ -59,7 +45,8 @@ def main():
                     add = True
                     existr = [exist, exist_list[exist][0], exist_list[exist][1], exist_list[exist][2], exist_list[exist][3]]
                     for row in outage:
-                        if existr == [row, outage[row][0], outage[row][1], outage[row][2].strftime('%d.%m.%Y'), outage[row][3]]:
+                        out_date = outage[row][2]
+                        if existr == [row, outage[row][0], outage[row][1], out_date.strftime('%d.%m.%Y'), outage[row][3]] and out_date > datetime.now().date():
                             add = False
                             break
                     if add:
@@ -80,6 +67,8 @@ def main():
                     if delete:
                         sql_del += '''delete from public."ElectroOutage" e where  e."UserNotify_ID" = %d and e."City" = '%s' and e."Street" = '%s' and e."StrDate" = '%s';\n''' % (exist, exist_list[exist][0], exist_list[exist][1], exist_list[exist][3])
             if sql_add:
+                dba.connect()
+                cur = dba.conn.cursor()
                 try:
                     cur.execute(sql_add)
                     dba.conn.commit()

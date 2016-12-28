@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
-import dj_database_url
+
 
 debug = os.environ.get('debug') == 'True'
 token = os.environ.get('token')

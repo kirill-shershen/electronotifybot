@@ -53,7 +53,7 @@ class NotifyParser():
                 notify = []
                 for item in ls:
                     if self.city.lower() in item.contents[1].text.lower():
-                        if self.check_street(item.contents[3].text.lower()):
+                        if self.check_street(item.contents[3].text.lower()) or self.street.lower() == u'все':
                             city = item.contents[1].text
                             street = item.contents[3].text
                             date_range = item.contents[5].text

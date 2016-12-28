@@ -5,7 +5,7 @@ import settings
 import logging
 import db
 from crawler import NotifyParser
-from datetime import date
+import user as u
 
 loglevel = logging.DEBUG == settings.debug
 logging.getLogger('requests').setLevel(loglevel)
@@ -29,81 +29,6 @@ if settings.debug:
 else:
     server = Flask(__name__)
 
-class User:
-    def __init__(self, id):
-        self.id = id
-        self.city = None
-        self.street = None
-        self.notify = None
-        self.db = db.db()
-        self.show = False
-        self.ListNotify = []
-
-    def check(self):
-        res = self.id and self.city and self.street and self.notify
-        select_cnt = '''select count(*) from public."UserNotify" u
-where
-  u."User_ID" = %d and
-  u."City" = '%s' and
-  u."Street" = '%s' and
-  u."Notify" = %d'''
-        try:
-            self.db.connect()
-            cur = self.db.conn.cursor()
-            cur.execute(select_cnt % (self.id, self.city.encode('utf8'), self.street.encode('utf8'), self.notify ))
-            row = cur.fetchone()
-            if int(row[0]) > 0:
-                str = 'Вы уже подписаны на данное уведомление'
-                return str, False
-        except:
-            self.db.disconnect()
-        return '', res
-
-    def save(self):
-        try:
-            self.db.connect()
-            cur = self.db.conn.cursor()
-            sql_ins = '''insert into public."UserNotify"("User_ID", "City", "Street", "Notify")
-                          values (%d, '%s', '%s', %d);''' %(self.id, self.city.encode('utf8'), self.street.encode('utf8'), self.notify)
-            cur.execute(sql_ins)
-            self.db.conn.commit()
-        except:
-            self.db.conn.rollback()
-        finally:
-            self.db.disconnect()
-
-    def update(self):
-        pass
-
-    def delete(self, id):
-        try:
-            self.db.connect()
-            cur = self.db.conn.cursor()
-            sql_ins = '''delete from public."UserNotify" u where u."ID" = %d;''' % (id)
-            cur.execute(sql_ins)
-            self.db.conn.commit()
-        except:
-            self.db.conn.rollback()
-        finally:
-            self.db.disconnect()
-
-    def notifies(self):
-        try:
-            self.db.connect()
-            cur = self.db.conn.cursor()
-            select_sql = '''select * from public."UserNotify" u where u."User_ID" = %d '''
-            cur.execute(select_sql % (self.id))
-            if cur.rowcount == 0:
-                return []
-            else:
-                rows = cur.fetchall()
-                res = {}
-                for row in rows:
-                    res[row[4]] = [row[1], row[2], row[3]]
-                self.ListNotify = res.keys()
-                return res
-        except:
-            self.db.disconnect()
 
 user_dict = {}
 
@@ -120,8 +45,7 @@ def check_break(func):
             func(message)
     return decorate
 
-@bot.message_handler(commands=['help', 'start'])
-def start(message):
+def global_kbd():
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     btn_a = telebot.types.KeyboardButton('Подписаться')
     btn_b = telebot.types.KeyboardButton('Показать ближайшее')
@@ -129,16 +53,22 @@ def start(message):
     btn_d = telebot.types.KeyboardButton('Помощь')
     markup.add(btn_a, btn_b)
     markup.add(btn_c, btn_d)
+    return markup
+
+@bot.message_handler(commands=['help', 'start'])
+def start(message):
+    mrkup = global_kbd()
     bot.send_message(message.chat.id, u'Добро пожаловать %s. Данный бот поможет вам узнать о плановом отключении элетричества или подписаться на уведомление о плановом отключении. '
                                       u'\nПодписаться на уведомление нужно выполнить команду /notify '
-                                      u'\nУзнать будет ли отключение нужно выполнить команду /show' % message.from_user.first_name, reply_markup = markup)
+                                      u'\nУзнать будет ли отключение нужно выполнить команду /show' % message.from_user.first_name, reply_markup = mrkup)
 
 @bot.message_handler(commands=['unnotify'])
 def unnotify(message):
-    user_dict[message.chat.id] = User(message.chat.id)
+    user_dict[message.chat.id] = u.UserNotify(message.chat.id)
     ntf = user_dict[message.chat.id].notifies()
+    mrkup = global_kbd()
     if not ntf:
-        bot.send_message(message.chat.id, u'У вас пока нет подписок на уведомление')
+        bot.send_message(message.chat.id, u'У вас пока нет подписок на уведомление', reply_markup = mrkup)
     else:
         s = u''
         i = 1
@@ -163,14 +93,15 @@ def process_unnotify_step(message):
             bot.register_next_step_handler(message, process_unnotify_step)
         else:
             user.delete(user.ListNotify[int(id)-1])
-            bot.send_message(message.chat.id, 'Уведомление удалено')
+            mrkup = global_kbd()
+            bot.send_message(message.chat.id, 'Уведомление удалено', reply_markup = mrkup)
     except ValueError:
         bot.reply_to(message, 'Не правильно указан номер уведомления.')
         bot.register_next_step_handler(message, process_unnotify_step)
 
 @bot.message_handler(commands=['notify'])
 def notify(message):
-    user_dict[message.chat.id] = User(message.chat.id)
+    user_dict[message.chat.id] = u.UserNotify(message.chat.id)
     bot.send_message(message.chat.id, u'Чтобы получать уведомления об отключении нужно указать населенный пункт, улицу и количество дней до которого нужно будет уведомить'
                                       u'\n\nДля начала укажите населенный пункт без сокращений и аббревиатур, например: Беломестное или Белгород')
     bot.register_next_step_handler(message, process_city_step)
@@ -178,10 +109,13 @@ def notify(message):
 @check_break
 def process_city_step(message):
     try:
+        markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        btn_a = telebot.types.KeyboardButton('Все')
         user = user_dict[message.chat.id]
         user.city = message.text.strip()
         user_dict[message.chat.id] = user
-        bot.send_message(message.chat.id, u'Далее укажите улицу без сокращений и аббревиатур, например: Центральная или Спортивная')
+        markup.add(btn_a)
+        bot.send_message(message.chat.id, u'Далее укажите улицу без сокращений и аббревиатур, например: Центральная или Спортивная', reply_markup = markup)
         bot.register_next_step_handler(message, process_street_step)
     except:
         bot.reply_to(message, 'Не правильно указана Улица. Попробуйте снова.')
@@ -195,20 +129,19 @@ def process_street_step(message):
         user_dict[message.chat.id] = user
         if user_dict[message.chat.id].show:
             msg, ntf = NotifyParser().get_outage(user_dict[message.chat.id].city, user_dict[message.chat.id].street)
+            mrkup = global_kbd()
             if msg:
-                bot.send_message(message.chat.id, msg)
+                bot.send_message(message.chat.id, msg, reply_markup = mrkup)
             else:
                 if not ntf:
-                    bot.send_message(message.chat.id, 'В этом месяце нет информации по отключению по этому адресу')
+                    bot.send_message(message.chat.id, 'В этом месяце нет информации по отключению по этому адресу', reply_markup = mrkup)
                     return
                 s = ''
                 for line in ntf:
                     l = zip(COLS, line)
                     for name, value in l:
-                        #ставим пробел между датой и временем
-                        year = str(date.today().year)
-                        if year in value and value[value.find(year)+4] != ' ':
-                            value = value.replace(year, year + ' ')
+                        if name == COLS[2]:
+                            value = u.get_date(value)
                         s += u'%s: %s\n' % (name, value)
                     s += u'\n\n'
                 bot.send_message(message.chat.id, s)
@@ -231,7 +164,8 @@ def process_notify_step(message):
             bot.send_message(message.chat.id, msg)
         else:
             user.save()
-            bot.send_message(message.chat.id, u'Вы подписались на уведомление.')
+            mrkup = global_kbd()
+            bot.send_message(message.chat.id, u'Вы подписались на уведомление.', reply_markup = mrkup)
     except ValueError:
         bot.reply_to(message, 'Укажите число от 1 до 3')
         bot.register_next_step_handler(message, process_notify_step)
@@ -241,7 +175,7 @@ def process_notify_step(message):
 
 @bot.message_handler(commands=['show'])
 def show(message):
-    user_dict[message.chat.id] = User(message.chat.id)
+    user_dict[message.chat.id] = u.UserNotify(message.chat.id)
     user_dict[message.chat.id].show = True
     bot.send_message(message.chat.id, u'Чтобы узнать о ближайшем отключении нужно указать населенный пункт и улицу'
                      u'\n\nДля начала укажите населенный пункт без сокращений и аббревиатур, например: Беломестное или Белгород')
