@@ -24,12 +24,15 @@ def get_notify():
     finally:
         dba.disconnect()
 
-def get_outage():
+def get_outage(user_id = None):
     try:
+        sql_where = ''
+        if user_id:
+            sql_where = ' e where e."UserNotify_ID" in (select u."ID" from public."UserNotify" u where u."User_ID" = %d)' % user_id
         dba = db()
         dba.connect()
         cur = dba.conn.cursor()
-        cur.execute('select * from public."ElectroOutage"')
+        cur.execute('select * from public."ElectroOutage" %s;' % sql_where)
         rows = cur.fetchall()
         outage = {}
         if rows:

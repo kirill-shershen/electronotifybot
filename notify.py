@@ -13,7 +13,7 @@ logging.basicConfig(format='[%(asctime)s] %(filename)s:%(lineno)d %(levelname)s 
                     , datefmt='%d.%m.%Y %H:%M:%S')
 
 COLS = [u'Населенный пункт', u'Улица', u'Время отключения', u'Причина']
-cmds = {u'Подписаться':'notify', u'Отписаться':'unnotify', u'Помощь':'start', u'Показать ближайшее':'show'}
+cmds = {u'Подписаться':'notify', u'Отписаться':'unnotify', u'Помощь':'start', u'Показать ближайшее':'show', u'Показать по подписке':'showmy'}
 
 class server:
     def route(self, *args, **kwargs):
@@ -50,10 +50,23 @@ def global_kbd():
     btn_a = telebot.types.KeyboardButton('Подписаться')
     btn_b = telebot.types.KeyboardButton('Показать ближайшее')
     btn_c = telebot.types.KeyboardButton('Отписаться')
-    btn_d = telebot.types.KeyboardButton('Помощь')
+    btn_d = telebot.types.KeyboardButton('Показать по подписке')
     markup.add(btn_a, btn_b)
     markup.add(btn_c, btn_d)
     return markup
+
+def put_outage(user_id, ntf, mrkup):
+    s = ''
+    for line in ntf:
+        l = zip(COLS, line)
+        for name, value in l:
+            if name == COLS[2]:
+                value = u.get_date(value)
+            if type(value) == str:
+                value = unicode(value.decode('utf-8'))
+            s += u'%s: %s\n' % (name, value)
+        s += u'\n\n'
+    bot.send_message(user_id, s, reply_markup = mrkup)
 
 @bot.message_handler(commands=['help', 'start'])
 def start(message):
@@ -61,6 +74,21 @@ def start(message):
     bot.send_message(message.chat.id, u'Добро пожаловать %s. Данный бот поможет вам узнать о плановом отключении элетричества или подписаться на уведомление о плановом отключении. '
                                       u'\nПодписаться на уведомление нужно выполнить команду /notify '
                                       u'\nУзнать будет ли отключение нужно выполнить команду /show' % message.from_user.first_name, reply_markup = mrkup)
+
+@bot.message_handler(commands=['showmy'])
+def showmy(message):
+    user_dict[message.chat.id] = u.UserNotify(message.chat.id)
+    ntf = user_dict[message.chat.id].notifies()
+    mrkup = global_kbd()
+    if not ntf:
+        bot.send_message(message.chat.id, u'У вас пока нет подписок на уведомление', reply_markup = mrkup)
+    else:
+        outage = u.get_outage(message.chat.id)
+        if not outage:
+            bot.send_message(message.chat.id, u'В ближайшее время не будет отключений!', reply_markup = mrkup)
+        else:
+            ntf = [[outage[out][0], outage[out][1], outage[out][3], outage[out][4]] for out in outage]
+            put_outage(message.chat.id, ntf, mrkup)
 
 @bot.message_handler(commands=['unnotify'])
 def unnotify(message):
@@ -136,15 +164,7 @@ def process_street_step(message):
                 if not ntf:
                     bot.send_message(message.chat.id, 'В этом месяце нет информации по отключению по этому адресу', reply_markup = mrkup)
                     return
-                s = ''
-                for line in ntf:
-                    l = zip(COLS, line)
-                    for name, value in l:
-                        if name == COLS[2]:
-                            value = u.get_date(value)
-                        s += u'%s: %s\n' % (name, value)
-                    s += u'\n\n'
-                bot.send_message(message.chat.id, s)
+                put_outage(message.chat.id, ntf, mrkup)
         else:
             bot.send_message(message.chat.id, u'Теперь укажите за сколько дней до отключения нужно Вас уведомить(от 1 до 3 дней). Введите 1, 2 или 3.')
             bot.register_next_step_handler(message, process_notify_step)
@@ -192,6 +212,10 @@ def command_text_notify(message):
 @bot.message_handler(func=lambda message: message.text == u"Показать ближайшее")
 def command_text_notify(message):
     show(message)
+
+@bot.message_handler(func=lambda message: message.text == u"Показать по подписке")
+def command_text_notify(message):
+    showmy(message)
 
 @bot.message_handler(func=lambda message: message.text == u"Помощь")
 def command_text_notify(message):
