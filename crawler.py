@@ -22,7 +22,7 @@ class NotifyParser():
     def parse(self, url):
         try:
             r = requests.get(url)
-            soup = BeautifulSoup(r.text)
+            soup = BeautifulSoup(r.text, 'html.parser')
             ls = soup.find_all('tr', id=re.compile('^ufid.*'))
             return ls
         except:

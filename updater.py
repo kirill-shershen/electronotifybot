@@ -8,12 +8,12 @@ import user as u
 
 dates = '\d{4}-\d{2}-\d{2}|\d{2}.\d{2}.\d{4}|\d{2}.\d{2}.\d{2}|\d{2} \W* \d{4}'
 def main():
+    dba = None
     #get all outage from site
     msg, ls = NotifyParser().get_all()
     if msg:
         raise msg
     try:
-        dba = db()
         usernotify = u.get_notify()
         #get all outage from db
         outage = u.get_outage()
@@ -67,6 +67,7 @@ def main():
                     if delete:
                         sql_del += '''delete from public."ElectroOutage" e where  e."UserNotify_ID" = %d and e."City" = '%s' and e."Street" = '%s' and e."StrDate" = '%s';\n''' % (exist, exist_list[exist][0], exist_list[exist][1], exist_list[exist][3])
             if sql_add:
+                dba = db()
                 dba.connect()
                 cur = dba.conn.cursor()
                 try:
@@ -81,7 +82,8 @@ def main():
                 except:
                     dba.conn.rollback()
     finally:
-        dba.disconnect()
+        if dba:
+            dba.disconnect()
 
 
 if __name__ == '__main__':
