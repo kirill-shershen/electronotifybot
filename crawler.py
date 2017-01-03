@@ -1,10 +1,16 @@
 # -*- coding: utf-8 -*-
+import settings
 import requests
 from bs4 import BeautifulSoup
 import os
 import re
+
+
+logger = settings.logger()
 URL = os.environ.get('MRSKURL')
 vary_strange_streets = [u'все', u'всё', u'быт', u'все улицы', u'все, кто будет обращаться', u'все объекты']
+
+
 class NotifyParser():
 
     def __init__(self):
@@ -39,10 +45,10 @@ class NotifyParser():
                     date_range = item.contents[5].text
                     reason = item.contents[7].text
                     notify.append([city, street, date_range, reason])
-                return '', notify
-            return 'Не удалось получить информацию с сайта', []
+                return notify
+            logger.warn(u'Не удалось получить информацию с сайта')
         except:
-            return 'ошибка при получении информации', []
+            logger.error(u'ошибка при получении информации')
 
     def get_outage(self, city, street):
         try:
@@ -60,7 +66,7 @@ class NotifyParser():
                             reason = item.contents[7].text
                             notify.append([city, street, date_range, reason])
                 return '', notify
-            return 'Не удалось получить информацию с сайта', []
+            return u'Не удалось получить информацию с сайта', []
         except:
-            return 'Сервис временно не доступен', []
+            logger.error(u'Сервис временно не доступен')
 

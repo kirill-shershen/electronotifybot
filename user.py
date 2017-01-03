@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 from db import db
 from datetime import date
+import settings
+
+logger = settings.logger()
+
 def get_date(str_date):
     #ставим пробел между датой и временем
     year = str(date.today().year)
@@ -19,12 +23,13 @@ def get_notify():
             for row in rows:
                 usernotify[row[0]] = [row[4], row[1], row[2], row[3]]
         if not rows or not usernotify:
-            raise 'no records in db'
+            logger.warning('no records in db')
+            exit(0)
         return usernotify
     finally:
         dba.disconnect()
 
-def get_outage(user_id = None):
+def get_useroutage(user_id = None):
     try:
         sql_where = ''
         if user_id:

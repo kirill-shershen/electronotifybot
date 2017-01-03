@@ -15,6 +15,8 @@ logging.basicConfig(format='[%(asctime)s] %(filename)s:%(lineno)d %(levelname)s 
 COLS = [u'Населенный пункт', u'Улица', u'Время отключения', u'Причина']
 cmds = {u'Подписаться':'notify', u'Отписаться':'unnotify', u'Помощь':'start', u'Показать ближайшее':'show', u'Показать по подписке':'showmy'}
 
+logger = settings.logger()
+
 class server:
     def route(self, *args, **kwargs):
         def decorator(f):
@@ -156,9 +158,10 @@ def process_street_step(message):
         user.street = message.text.strip()
         user_dict[message.chat.id] = user
         if user_dict[message.chat.id].show:
-            msg, ntf = NotifyParser().get_outage(user_dict[message.chat.id].city, user_dict[message.chat.id].street)
+            msg, ntf = NotifyParser().get_alloutage(user_dict[message.chat.id].city, user_dict[message.chat.id].street)
             mrkup = global_kbd()
             if msg:
+                logger.warn(msg)
                 bot.send_message(message.chat.id, msg, reply_markup = mrkup)
             else:
                 if not ntf:
