@@ -40,4 +40,5 @@ envvars.bat
 push.bat
 .idea
 /logs
+pydevd_attach_to_process
 pip-selfcheck.json

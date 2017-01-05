@@ -5,6 +5,8 @@ from db import db
 import re
 from datetime import datetime
 import user as u
+import sys
+
 
 logger = settings.logger()
 
@@ -22,7 +24,7 @@ def main():
         logger.debug(u'Чтение уже созданных пользовательских уведомлений')
         outage = u.get_useroutage()
         #merge
-        logger.debug(u'создание списка ')
+        logger.debug(u'создание списка уведомлений')
         for user in usernotify:
             exist_list = {} # list of all notifies on site
             for notify in usernotify:
@@ -114,4 +116,8 @@ def main():
 
 
 if __name__ == '__main__':
+    if settings.heroku_debug:
+        sys.path.append('/app/pycharm-debug.egg')
+        import pydevd
+        pydevd.settrace(settings.server_debug, port=4040, stdoutToServer=True, stderrToServer=True)
     main()

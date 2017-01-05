@@ -6,6 +6,7 @@ import logging
 import db
 from crawler import NotifyParser
 import user as u
+import time
 
 loglevel = logging.DEBUG == settings.debug
 logging.getLogger('requests').setLevel(loglevel)
@@ -232,6 +233,7 @@ def getMessage():
 @server.route("/")
 def webhook():
     bot.remove_webhook()
+    time.sleep(3) #needed pause between commands
     bot.set_webhook(url=settings.WEBHOOK_URL_BASE)
     return "!", 200
 
