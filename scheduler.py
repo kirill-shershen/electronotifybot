@@ -13,7 +13,7 @@ class Scheduler():
 
     def prepare(self):
         usernotify = u.get_notify()
-        outage = u.get_outage()
+        outage = u.get_useroutage()
         date = datetime.now().date()
         for user in usernotify:
             self.events[user] = []

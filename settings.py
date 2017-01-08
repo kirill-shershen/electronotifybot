@@ -18,7 +18,10 @@ WEBHOOK_LISTEN = '0.0.0.0'
 WEBHOOK_URL_BASE = "https://%s/%s"% (WEBHOOK_HOST,WEBHOOK_URL_PATH)
 
 def logger():
-    lvl = logging.DEBUG if heroku_debug == True else lvl = logging.INFO
+    if heroku_debug == True:
+        lvl = logging.DEBUG
+    else:
+        lvl = logging.INFO
     logger = logging.getLogger(__name__)
     if not logger.handlers:
         # set up logging to console
