@@ -35,6 +35,7 @@ class NotifyParser():
             return []
 
     def get_all(self):
+        logger.debug('get_all')
         try:
             ls = self.parse(URL)
             if ls:
@@ -51,6 +52,7 @@ class NotifyParser():
             logger.error(u'ошибка при получении информации')
 
     def get_outage(self, city, street):
+        logger.debug('get_outage')
         try:
             self.city = city
             self.street = street

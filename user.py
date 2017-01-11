@@ -12,6 +12,7 @@ def get_date(str_date):
         return str_date.replace(year, year + ' ')
 
 def get_notify():
+    logger.debug('get_notify')
     try:
         dba = db()
         dba.connect()
@@ -30,6 +31,7 @@ def get_notify():
         dba.disconnect()
 
 def get_useroutage(user_id = None):
+    logger.debug('get_useroutage')
     try:
         sql_where = ''
         if user_id:
