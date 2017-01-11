@@ -120,6 +120,6 @@ if __name__ == '__main__':
          logger.debug('remote debug')
          sys.path.append('/app/pycharm-debug.egg')
          import pydevd
-         pydevd.settrace(settings.server_debug, port=80, stdoutToServer=True, stderrToServer=True)
+         pydevd.settrace(settings.server_debug, port=settings.port_debug, stdoutToServer=True, stderrToServer=True)
      logger.info('Обновление событий')
      main()
