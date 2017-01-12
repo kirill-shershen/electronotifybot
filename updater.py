@@ -35,7 +35,7 @@ def main():
                             for old, new in [(u'января', '01'), (u'февраля', '02'), (u'марта', '03'), (u'апреля', '04'), (u'мая', '05'), (u'июня', '06'), (u'июля', '07'), (u'августа', '08'), (u'сентября', '09'), (u'октября', '10'), (u'ноября', '11'), (u'декабря', '12')]:
                                 date_str = date_line[0].replace(old, new)
                                 break
-                            date_str = date_str.replace(' ', '.')
+                            date_str = datetime.strptime(date_str, '%d %m %Y').strftime('%Y-%m-%d')
                             exist_list[usernotify[notify][0]] = [l[0].encode('utf8'), l[1].encode('utf8'), date_str.encode('utf8'), l[2].encode('utf8'), l[3].encode('utf8')]
         if not exist_list:
             logger.info(u'Не найдено уведомлений для заданных настроек поиска')

@@ -22,7 +22,7 @@ WEBHOOK_LISTEN = '0.0.0.0'
 WEBHOOK_URL_BASE = "https://%s/%s"% (WEBHOOK_HOST,WEBHOOK_URL_PATH)
 
 def logger():
-    if heroku_debug == True:
+    if debug == True:
         lvl = logging.DEBUG
     else:
         lvl = logging.INFO

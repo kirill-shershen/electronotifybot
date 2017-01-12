@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from db import db
+from db import db as DB
 from datetime import date
 import settings
 
@@ -14,7 +14,7 @@ def get_date(str_date):
 def get_notify():
     logger.debug('get_notify')
     try:
-        dba = db()
+        dba = DB()
         dba.connect()
         cur = dba.conn.cursor()
         cur.execute('select * from public."UserNotify"')
@@ -36,7 +36,7 @@ def get_useroutage(user_id = None):
         sql_where = ''
         if user_id:
             sql_where = ' e where e."UserNotify_ID" in (select u."ID" from public."UserNotify" u where u."User_ID" = %d)' % user_id
-        dba = db()
+        dba = DB()
         dba.connect()
         cur = dba.conn.cursor()
         cur.execute('select * from public."ElectroOutage" %s;' % sql_where)
@@ -55,7 +55,7 @@ class UserNotify:
         self.city = None
         self.street = None
         self.notify = None
-        self.db = db()
+        self.db = DB()
         self.show = False
         self.ListNotify = []
 
