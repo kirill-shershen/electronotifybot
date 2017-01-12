@@ -29,7 +29,7 @@ def main():
             exist_list = {} # list of all notifies on site
             for notify in usernotify:
                 for l in ls:
-                    if unicode(usernotify[notify][1].decode('utf-8')).lower() in l[0].lower() and (unicode(usernotify[notify][2].decode('utf-8')).lower() in l[1].lower() or (usernotify[notify][2].lower() == 'все')):
+                    if unicode(usernotify[notify][1].decode('utf-8')).lower() in l[0].lower() and (unicode(usernotify[notify][2].decode('utf-8')).lower() in l[1].lower() or (unicode(usernotify[notify][2].decode('utf-8')).lower() == u'все')):
                         date_line = re.findall(dates, l[2].lower())
                         if date_line[0]:
                             for old, new in [(u'января', '01'), (u'февраля', '02'), (u'марта', '03'), (u'апреля', '04'), (u'мая', '05'), (u'июня', '06'), (u'июля', '07'), (u'августа', '08'), (u'сентября', '09'), (u'октября', '10'), (u'ноября', '11'), (u'декабря', '12')]:
@@ -109,7 +109,7 @@ def main():
                 except:
                     logger.error(u'Ошибка при выполнении скрипта удаления')
                     dba.conn.rollback()
-            logger.info(u'Обновление завершено')
+        logger.info(u'Обновление завершено')
     finally:
         if dba:
             dba.disconnect()

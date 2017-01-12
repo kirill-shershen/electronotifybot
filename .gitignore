@@ -3,7 +3,7 @@
 # except keeps /bin directory.
 
 *.py[co]
-
+ngrok.bat
 # Packages
 *.egg-info
 dist

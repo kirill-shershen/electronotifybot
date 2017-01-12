@@ -3,11 +3,11 @@ import os
 import logging
 import sys
 
+token = os.environ.get('token')
+db_url = os.environ.get('DATABASE_URL')
 
 debug = os.environ.get('debug') == 'True'
 heroku_debug = os.environ.get('heroku_debug') == 'True'
-token = os.environ.get('token')
-db_url = os.environ.get('DATABASE_URL')
 server_debug = os.environ.get('server_debug')
 try:
     port_debug = int(os.environ.get('port_debug') or 0)
