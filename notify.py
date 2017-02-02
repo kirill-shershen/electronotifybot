@@ -2,16 +2,10 @@
 import telebot
 from flask import Flask, request
 import settings
-import logging
-import db
 from crawler import NotifyParser
 import user as u
 import time
-
-loglevel = logging.DEBUG == settings.debug
-logging.getLogger('requests').setLevel(loglevel)
-logging.basicConfig(format='[%(asctime)s] %(filename)s:%(lineno)d %(levelname)s - %(message)s', level=logging.INFO
-                    , datefmt='%d.%m.%Y %H:%M:%S')
+import updater
 
 COLS = [u'Населенный пункт', u'Улица', u'Время отключения', u'Причина']
 cmds = {u'Подписаться':'notify', u'Отписаться':'unnotify', u'Помощь':'start', u'Показать ближайшее':'show', u'Показать по подписке':'showmy'}
@@ -86,11 +80,14 @@ def showmy(message):
     if not ntf:
         bot.send_message(message.chat.id, u'У вас пока нет подписок на уведомление', reply_markup = mrkup)
     else:
-        outage = u.get_outage(message.chat.id)
+        outage = u.get_useroutage(message.chat.id)
         if not outage:
             bot.send_message(message.chat.id, u'В ближайшее время не будет отключений!', reply_markup = mrkup)
         else:
-            ntf = [[outage[out][0], outage[out][1], outage[out][3], outage[out][4]] for out in outage]
+            ntf = []
+            for row in outage:
+                for out in outage[row]:
+                    ntf.append([out[0], out[1], out[3], out[4]])
             put_outage(message.chat.id, ntf, mrkup)
 
 @bot.message_handler(commands=['unnotify'])
@@ -159,7 +156,7 @@ def process_street_step(message):
         user.street = message.text.strip()
         user_dict[message.chat.id] = user
         if user_dict[message.chat.id].show:
-            msg, ntf = NotifyParser().get_alloutage(user_dict[message.chat.id].city, user_dict[message.chat.id].street)
+            msg, ntf = NotifyParser().get_outage(user_dict[message.chat.id].city, user_dict[message.chat.id].street)
             mrkup = global_kbd()
             if msg:
                 logger.warn(msg)
@@ -190,6 +187,7 @@ def process_notify_step(message):
             user.save()
             mrkup = global_kbd()
             bot.send_message(message.chat.id, u'Вы подписались на уведомление.', reply_markup = mrkup)
+            updater.main()
     except ValueError:
         bot.reply_to(message, 'Укажите число от 1 до 3')
         bot.register_next_step_handler(message, process_notify_step)
@@ -237,11 +235,11 @@ def webhook():
     bot.set_webhook(url=settings.WEBHOOK_URL_BASE)
     return "!", 200
 
-if not settings.debug:
+if settings.host == 'heroku':
     #устанавливать вебхук когда мы на хероку
     server.run(host=settings.WEBHOOK_LISTEN, port=settings.WEBHOOK_PORT)
     server = Flask(__name__)
     webhook()
-else:
+elif settings.host == 'local':
     bot.remove_webhook()
     bot.polling()

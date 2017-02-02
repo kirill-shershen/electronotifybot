@@ -1,7 +1,9 @@
 import psycopg2
 import dj_database_url
 import settings
-import logging
+
+logger = settings.logger()
+
 class db():
 
     def __init__(self):
@@ -17,10 +19,12 @@ class db():
                         port=self.db_info.get('PORT'))
         except:
             # logger
-            print 'error connection'
+            logger.error('error connection')
+            raise
 
     def disconnect(self):
         try:
             self.conn.close()
         except:
-            print 'error disconnection'
+            logger.error('error disconnection')
+            raise

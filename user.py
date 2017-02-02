@@ -44,7 +44,9 @@ def get_useroutage(user_id = None):
         outage = {}
         if rows:
             for row in rows:
-                outage[row[1]] = [row[2], row[3], row[4], row[5], row[6]]
+                if not outage.has_key(row[1]):
+                    outage[row[1]] = list()
+                outage[row[1]].append([row[2], row[3], row[4], row[5], row[6]])
         return outage
     finally:
         dba.disconnect()

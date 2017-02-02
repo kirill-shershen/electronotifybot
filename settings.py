@@ -6,6 +6,7 @@ import sys
 token = os.environ.get('token')
 db_url = os.environ.get('DATABASE_URL')
 
+host = os.environ.get('host')
 debug = os.environ.get('debug') == 'True'
 heroku_debug = os.environ.get('heroku_debug') == 'True'
 server_debug = os.environ.get('server_debug')
