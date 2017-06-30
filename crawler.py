@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-import settings
+import logger
 import requests
 from bs4 import BeautifulSoup
 import os
 import re
 
 
-logger = settings.logger()
+logger = logger.logger()
 URL = os.environ.get('MRSKURL')
 vary_strange_streets = [u'все', u'всё', u'быт', u'все улицы', u'все, кто будет обращаться', u'все объекты']
 

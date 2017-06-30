@@ -1,31 +1,20 @@
 # -*- coding: utf-8 -*-
 import telebot
-from flask import Flask, request
-import settings
+from flask import request
+import logger
 from crawler import NotifyParser
 import user as u
 import time
 import updater
-
+import threading
+from app import app
+import config
 COLS = [u'Населенный пункт', u'Улица', u'Время отключения', u'Причина']
 cmds = {u'Подписаться':'notify', u'Отписаться':'unnotify', u'Помощь':'start', u'Показать ближайшее':'show', u'Показать по подписке':'showmy'}
 
-logger = settings.logger()
+logger = logger.logger()
 
-class server:
-    def route(self, *args, **kwargs):
-        def decorator(f):
-            return f
-
-        return decorator
-
-bot = telebot.TeleBot(settings.token)
-
-if settings.debug:
-    server = server()
-else:
-    server = Flask(__name__)
-
+bot = telebot.TeleBot(config.token)
 
 user_dict = {}
 
@@ -80,20 +69,19 @@ def showmy(message):
     if not ntf:
         bot.send_message(message.chat.id, u'У вас пока нет подписок на уведомление', reply_markup = mrkup)
     else:
-        outage = u.get_useroutage(message.chat.id)
+        outage = u.get_useroutage2(message.chat.id)
         if not outage:
             bot.send_message(message.chat.id, u'В ближайшее время не будет отключений!', reply_markup = mrkup)
         else:
             ntf = []
             for row in outage:
-                for out in outage[row]:
-                    ntf.append([out[0], out[1], out[3], out[4]])
+                ntf.append([row.City, row.Street, row.StrDate, row.Reason])
             put_outage(message.chat.id, ntf, mrkup)
 
 @bot.message_handler(commands=['unnotify'])
 def unnotify(message):
-    user_dict[message.chat.id] = u.UserNotify(message.chat.id)
-    ntf = user_dict[message.chat.id].notifies()
+    user_dict[message.chat.id] = u.User(message.chat.id)
+    ntf = user_dict[message.chat.id].notifies
     mrkup = global_kbd()
     if not ntf:
         bot.send_message(message.chat.id, u'У вас пока нет подписок на уведомление', reply_markup = mrkup)
@@ -101,12 +89,8 @@ def unnotify(message):
         s = u''
         i = 1
         for n in ntf:
-            l = zip([u'Населенный пункт', u'Улица', u'Кол-во  дней'], ntf[n])
-            s += u'%d. ' % i
-            for name, value in l:
-                s += u'%s: %s, ' % (name, unicode(str(value).decode('utf-8')))
+            s += u'%d. Населенный пункт: %s, Улица: %s, Кол-во дней: %d\n' % (i, n.city, n.street, n.notify)
             i += 1
-            s = s[:-2] + '\n'
 
     bot.send_message(message.chat.id, u'Введите номер уведомления которое нужно удалить:\n' + s)
     bot.register_next_step_handler(message, process_unnotify_step)
@@ -116,11 +100,11 @@ def process_unnotify_step(message):
     user = user_dict[message.chat.id]
     id = message.text.strip()
     try:
-        if not int(id) in range(1, len(user.ListNotify) + 1):
+        if not int(id) in range(1, len(user.notifies) + 1):
             bot.reply_to(message, 'Не правильно указан номер уведомления.')
             bot.register_next_step_handler(message, process_unnotify_step)
         else:
-            user.delete(user.ListNotify[int(id)-1])
+            user.notifies.delete(idx=int(id)-1)
             mrkup = global_kbd()
             bot.send_message(message.chat.id, 'Уведомление удалено', reply_markup = mrkup)
     except ValueError:
@@ -129,7 +113,7 @@ def process_unnotify_step(message):
 
 @bot.message_handler(commands=['notify'])
 def notify(message):
-    user_dict[message.chat.id] = u.UserNotify(message.chat.id)
+    user_dict[message.chat.id] = u.Notify()
     bot.send_message(message.chat.id, u'Чтобы получать уведомления об отключении нужно указать населенный пункт, улицу и количество дней до которого нужно будет уведомить'
                                       u'\n\nДля начала укажите населенный пункт без сокращений и аббревиатур, например: Беломестное или Белгород')
     bot.register_next_step_handler(message, process_city_step)
@@ -139,9 +123,9 @@ def process_city_step(message):
     try:
         markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         btn_a = telebot.types.KeyboardButton('Все')
-        user = user_dict[message.chat.id]
-        user.city = message.text.strip()
-        user_dict[message.chat.id] = user
+        notify = user_dict[message.chat.id]
+        notify.city = message.text.strip()
+        user_dict[message.chat.id] = notify
         markup.add(btn_a)
         bot.send_message(message.chat.id, u'Далее укажите улицу без сокращений и аббревиатур, например: Центральная или Спортивная', reply_markup = markup)
         bot.register_next_step_handler(message, process_street_step)
@@ -152,9 +136,10 @@ def process_city_step(message):
 @check_break
 def process_street_step(message):
     try:
-        user = user_dict[message.chat.id]
-        user.street = message.text.strip()
-        user_dict[message.chat.id] = user
+        notify = user_dict[message.chat.id]
+        notify.street = message.text.strip()
+        user_dict[message.chat.id] = notify
+        # если нужно просто показать событие
         if user_dict[message.chat.id].show:
             msg, ntf = NotifyParser().get_outage(user_dict[message.chat.id].city, user_dict[message.chat.id].street)
             mrkup = global_kbd()
@@ -166,6 +151,7 @@ def process_street_step(message):
                     bot.send_message(message.chat.id, 'В этом месяце нет информации по отключению по этому адресу', reply_markup = mrkup)
                     return
                 put_outage(message.chat.id, ntf, mrkup)
+        # если нужно добавить событие
         else:
             bot.send_message(message.chat.id, u'Теперь укажите за сколько дней до отключения нужно Вас уведомить(от 1 до 3 дней). Введите 1, 2 или 3.')
             bot.register_next_step_handler(message, process_notify_step)
@@ -176,15 +162,14 @@ def process_street_step(message):
 @check_break
 def process_notify_step(message):
     try:
-        user = user_dict[message.chat.id]
-        user.notify = message.text.strip()
-        user.notify = int(user.notify)
+        notify = user_dict[message.chat.id]
+        notify.notify = int(message.text.strip())
 
-        msg, chk = user.check()
-        if not chk and msg:
-            bot.send_message(message.chat.id, msg)
+        chk = notify.exist(message.chat.id)
+        if chk:
+            bot.send_message(message.chat.id, 'Вы уже подписаны на данное уведомление')
         else:
-            user.save()
+            notify.save(message.chat.id)
             mrkup = global_kbd()
             bot.send_message(message.chat.id, u'Вы подписались на уведомление.', reply_markup = mrkup)
             updater.main()
@@ -197,7 +182,7 @@ def process_notify_step(message):
 
 @bot.message_handler(commands=['show'])
 def show(message):
-    user_dict[message.chat.id] = u.UserNotify(message.chat.id)
+    user_dict[message.chat.id] = u.Notify()
     user_dict[message.chat.id].show = True
     bot.send_message(message.chat.id, u'Чтобы узнать о ближайшем отключении нужно указать населенный пункт и улицу'
                      u'\n\nДля начала укажите населенный пункт без сокращений и аббревиатур, например: Беломестное или Белгород')
@@ -223,23 +208,29 @@ def command_text_notify(message):
 def command_text_notify(message):
     start(message)
 
-@server.route("/bot", methods=['POST'])
+@app.route("/bot", methods=['POST'])
 def getMessage():
     bot.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode("utf-8"))])
     return "!", 200
 
-@server.route("/")
+@app.route("/")
 def webhook():
     bot.remove_webhook()
     time.sleep(3) #needed pause between commands
-    bot.set_webhook(url=settings.WEBHOOK_URL_BASE)
+    bot.set_webhook(url=config.WEBHOOK_URL_BASE)
     return "!", 200
 
-if settings.host == 'heroku':
+def polling():
+    bot.polling(none_stop=False, interval=2)
+
+if config.host == 'heroku':
     #устанавливать вебхук когда мы на хероку
-    server.run(host=settings.WEBHOOK_LISTEN, port=settings.WEBHOOK_PORT)
-    server = Flask(__name__)
+    app.run(host=config.WEBHOOK_LISTEN, port=config.WEBHOOK_PORT)
+
     webhook()
-elif settings.host == 'local':
+elif config.host == 'local':
     bot.remove_webhook()
-    bot.polling()
+    t1_stop = threading.Event()
+    t1 = threading.Thread(target=polling)
+    t1.start()
+

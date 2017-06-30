@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
-import settings
+import logger
 from crawler import NotifyParser
-from db import db
 import re
 from datetime import datetime
 import user as u
 import sys
+import config
 
 
-logger = settings.logger()
+logger = logger.logger()
 
 dates = '\d{4}-\d{2}-\d{2}|\d{2}.\d{2}.\d{4}|\d{2}.\d{2}.\d{2}|\d{1,2} \W* \d{4}'
 def main():
@@ -17,121 +17,66 @@ def main():
     ls = NotifyParser().get_all()
     if not ls:
         exit(0)
-    try:
-        logger.debug(u'Чтение пользовательских настроек поиска')
-        usernotify = u.get_notify()
-        #get all outage from db
-        logger.debug(u'Чтение уже созданных пользовательских уведомлений')
-        outage = u.get_useroutage()
-        #merge
-        logger.debug(u'создание списка уведомлений')
-        exist_list = {} # list of all notifies on site
-        for notify in usernotify:
-            for l in ls:
-                if unicode(usernotify[notify][1].decode('utf-8')).lower() in l[0].lower() and (unicode(usernotify[notify][2].decode('utf-8')).lower() in l[1].lower() or (unicode(usernotify[notify][2].decode('utf-8')).lower() == u'все')):
-                    date_line = re.findall(dates, l[2].lower())
-                    if date_line[0]:
-                        date_str = date_line[0]
-                        for old, new in [(u'января', '01'), (u'февраля', '02'), (u'марта', '03'), (u'апреля', '04'), (u'мая', '05'), (u'июня', '06'), (u'июля', '07'), (u'августа', '08'), (u'сентября', '09'), (u'октября', '10'), (u'ноября', '11'), (u'декабря', '12')]:
-                            if old in date_str:
-                                date_str = date_str.replace(old, new)
-                                break
-                        try:
+    logger.debug(u'Чтение пользовательских настроек поиска')
+    # usernotify = u.get_notify()
+    usernotify = u.NotifyList()
+    usernotify.load()
+    #get all outage from db
+    logger.debug(u'Чтение уже созданных пользовательских уведомлений')
+    # outage = u.get_useroutage()
+    outage = u.OutageList()
+    outage.load()
+    #merge
+    logger.debug(u'создание списка уведомлений')
+    # exist_list = {} # list of all notifies on site
+    exist_list = []
+    for notify in usernotify:
+        for l in ls:
+            if notify.city.lower() in l[0].lower() and (notify.street.lower() in l[1].lower() or (notify.street.lower() == u'все')):
+                date_line = re.findall(dates, l[2].lower())
+                if date_line[0]:
+                    date_str = date_line[0]
+                    for old, new in [(u'января', '01'), (u'февраля', '02'), (u'марта', '03'), (u'апреля', '04'), (u'мая', '05'), (u'июня', '06'), (u'июля', '07'), (u'августа', '08'), (u'сентября', '09'), (u'октября', '10'), (u'ноября', '11'), (u'декабря', '12')]:
+                        if old in date_str:
+                            date_str = date_str.replace(old, new)
+                            break
+                    try:
+                        if '.' in date_str:
+                            date_str = datetime.strptime(date_str, '%d.%m.%Y').strftime('%Y-%m-%d')
+                        else:
                             date_str = datetime.strptime(date_str, '%d %m %Y').strftime('%Y-%m-%d')
-                        except:
-                            logger.error(date_str)
-                            continue
-                        if not exist_list.has_key(usernotify[notify][0]):
-                            exist_list[usernotify[notify][0]] = list()
-                        exist_list[usernotify[notify][0]].append([l[0].encode('utf8'), l[1].encode('utf8'), date_str.encode('utf8'), l[2].encode('utf8'), l[3].encode('utf8')])
-        if not exist_list:
-            logger.info(u'Не найдено уведомлений для заданных настроек поиска')
-        if exist_list:
-            sql_add = ''
-            sql_del = ''
-            if not outage:
-                logger.debug(u'Подготовка скрипта добавления')
-                sql_add = 'insert into public."ElectroOutage" ("UserNotify_ID", "City", "Street", "Date", "StrDate", "Reason") values '
-                for exist in exist_list:
-                    for event in exist_list[exist]:
-                        sql_add += '''(%d, '%s', '%s', '%s', '%s', '%s'),''' % (exist, event[0], event[1], event[2], event[3], event[4])
-                sql_add = sql_add[:-1] + ';'
-                if not sql_add:
-                    logger.debug(u'Нечего добавлять')
-            else:
-                #add
-                logger.debug(u'Подготовка скрипта добавления')
-                sql_add_header = 'insert into public."ElectroOutage" ("UserNotify_ID", "City", "Street", "Date", "StrDate", "Reason") values '
-                header = False
-                for exist in exist_list:
-                    for event in exist_list[exist]:
-                        add = True
-                        existr = [exist, event[0], event[1], event[2], event[3]]
-                        for row in outage:
-                            for out in outage[row]:
-                                out_date = out[2]
-                                if existr == [row, out[0], out[1], out_date.strftime('%Y-%m-%d'), out[3]] and out_date >= datetime.now().date():
-                                    add = False
-                                    break
-                        if add:
-                            if not header:
-                                sql_add += sql_add_header
-                                header = True
-                            sql_add += '''(%d, '%s', '%s', '%s', '%s', '%s'),''' % (exist, event[0], event[1], event[2], event[3], event[4])
-                if sql_add:
-                    sql_add = sql_add[:-1] + ';'
-                else:
-                    logger.debug(u'Нечего добавлять')
-                #del
-                logger.debug(u'Подготовка скрипта удаления')
-                for row in outage:
-                    for out in outage[row]:
-                        delete = True
-                        rowr = [row, out[0], out[1], out[2].strftime('%Y-%m-%d'), out[3]]
-                        for exist in exist_list:
-                            for event in exist_list[exist]:
-                                if rowr == [exist, event[0], event[1], event[2], event[3]]:
-                                    delete = False
-                                    break
-                        if delete:
-                            sql_del += '''delete from public."ElectroOutage" e where  e."UserNotify_ID" = %d and e."City" = '%s' and e."Street" = '%s' and e."StrDate" = '%s';\n''' % (row, out[0], out[1], out[3])
-                if not sql_del:
-                    logger.debug(u'Нечего удалять')
-            if sql_add:
-                try:
-                    dba = db()
-                    dba.connect()
-                    cur = dba.conn.cursor()
-                    logger.debug(u'Выполнение добавления')
-                    logger.debug(unicode(sql_add.decode('utf-8')))
-                    cur.execute(sql_add)
-                    dba.conn.commit()
-                except:
-                    logger.error(u'Ошибка при выполнении скрипта добавления')
-                    dba.conn.rollback()
-            if sql_del:
-                try:
-                    dba = db()
-                    dba.connect()
-                    cur = dba.conn.cursor()
-                    logger.debug(u'Выполнение удаления')
-                    logger.debug(unicode(sql_del.decode('utf-8')))
-                    cur.execute(sql_del)
-                    dba.conn.commit()
-                except:
-                    logger.error(u'Ошибка при выполнении скрипта удаления')
-                    dba.conn.rollback()
-        logger.info(u'Обновление завершено')
-    finally:
-        if dba:
-            dba.disconnect()
+                    except:
+                        logger.error(date_str)
+                        continue
+                    o = u.Outage(0, notify.id, l[0].encode('utf8'), l[1].encode('utf8'), date_str.encode('utf8'), l[2].encode('utf8'), l[3].encode('utf8'))
+                    exist_list.append(o)
+    if not exist_list:
+        logger.info(u'Не найдено уведомлений для заданных настроек поиска')
+    if exist_list:
+        if len(outage) == 0:
+            logger.debug(u'Добавление новых')
+            for exist in exist_list:
+                exist.save()
+        else:
+            #add
+            logger.debug(u'Добавление новых')
+            for exist in exist_list:
+                if outage.find(exist.usernotify_id, exist.city, exist.street, exist.date, exist.strdate, exist.reason) == 0 and datetime.strptime(exist.date,'%Y-%m-%d').date() >= datetime.now().date():
+                    exist.save()
+            #del
+            logger.debug(u'Удаление старых')
+            for out in outage:
+                if not out in exist_list:
+                    out.delete()
+
+    logger.info(u'Обновление завершено')
 
 
 if __name__ == '__main__':
-     if settings.heroku_debug:
+     if config.heroku_debug:
          logger.debug('remote debug')
          sys.path.append('/app/pycharm-debug.egg')
          import pydevd
-         pydevd.settrace(settings.server_debug, port=settings.port_debug, stdoutToServer=True, stderrToServer=True)
+         pydevd.settrace(config.server_debug, port=config.port_debug, stdoutToServer=True, stderrToServer=True)
      logger.info('Обновление событий')
      main()

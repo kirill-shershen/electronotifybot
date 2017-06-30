@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 
-import settings
+import logger
 from datetime import datetime
 import telebot
 import user as u
+import config
 
-logger = settings.logger()
+
+logger = logger.logger()
 
 class Scheduler():
 
@@ -31,7 +33,7 @@ class Scheduler():
 
         logger.info('sending messages...')
         try:
-            bot = telebot.TeleBot(settings.token)
+            bot = telebot.TeleBot(config.token)
             for ev in self.events:
                 if self.events[ev]:
                     for msg in self.events[ev]:
