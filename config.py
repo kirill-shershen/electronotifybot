@@ -8,12 +8,14 @@ if gae:
         name = ndb.StringProperty()
         value = ndb.StringProperty()
 
-def get(name):
+def get(name, default = ''):
     if gae:
         val = Settings.query(Settings.name == name).get()
+        if not val.value:
+            val.value = default
         return val.value
     else:
-        return os.environ.get(name)
+        return os.environ.get(name, default)
 
 token = get('token')
 db_url = get('DATABASE_URL')
@@ -29,7 +31,7 @@ except ValueError:
 
 WEBHOOK_HOST = get('WEBHOOK_HOST')
 WEBHOOK_URL_PATH = '/bot'
-WEBHOOK_PORT = get('PORT',5000)
+WEBHOOK_PORT = int(get('PORT', '5000'))
 WEBHOOK_LISTEN = '0.0.0.0'
 
 WEBHOOK_URL_BASE = "https://%s/%s"% (WEBHOOK_HOST,WEBHOOK_URL_PATH)
