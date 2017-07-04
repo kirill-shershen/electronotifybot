@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-from db import db as DB
-from app import db
+
 from datetime import date
 import logger
 from models import ElectroOutage as eo

@@ -1,4 +1,3 @@
-application: electronotifybot-172307
 runtime: python
 env: flex
 entrypoint: gunicorn -b :$PORT notify:app
