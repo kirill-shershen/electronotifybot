@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import os,sys
+sys.path.insert(1, os.path.join(os.path.abspath('.'), 'Lib/site-packages'))
 import telebot
 from flask import request
 import logger
@@ -7,14 +9,14 @@ import user as u
 import time
 import updater
 import threading
-from app import app
+from main import app
 import config
 COLS = [u'Населенный пункт', u'Улица', u'Время отключения', u'Причина']
 cmds = {u'Подписаться':'notify', u'Отписаться':'unnotify', u'Помощь':'start', u'Показать ближайшее':'show', u'Показать по подписке':'showmy'}
 
 logger = logger.logger()
 
-bot = telebot.TeleBot(config.token)
+bot = telebot.TeleBot(config.token, threaded = False)
 
 user_dict = {}
 
@@ -63,7 +65,7 @@ def start(message):
 
 @bot.message_handler(commands=['showmy'])
 def showmy(message):
-    user_dict[message.chat.id] = u.UserNotify(message.chat.id)
+    user_dict[message.chat.id] = u.User(message.chat.id)
     ntf = user_dict[message.chat.id].notifies()
     mrkup = global_kbd()
     if not ntf:

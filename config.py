@@ -1,19 +1,18 @@
 # -*- coding: utf-8 -*-
 import os
 
-gae = os.environ.get('USER') == 'vol1001_01'
+gae = 1 == 1
 if gae:
-    from google.appengine.ext import ndb
-    class Settings(ndb.Model):
-        name = ndb.StringProperty()
-        value = ndb.StringProperty()
+    import json
+    json_data = open('config.json').read()
+    config = json.loads(json_data)
 
 def get(name, default = ''):
     if gae:
-        val = Settings.query(Settings.name == name).get()
-        if not val.value:
-            val.value = default
-        return val.value
+        if config.has_key(name):
+            return config[name]
+        else:
+            return default
     else:
         return os.environ.get(name, default)
 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from app import db
+from main import db
 
 
 class UserNotify(db.Model):

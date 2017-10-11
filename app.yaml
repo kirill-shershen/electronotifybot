@@ -1,6 +1,14 @@
-runtime: python
-env: flex
-entrypoint: gunicorn -b :$PORT notify:app
+runtime: python27
+api_version: 1
+threadsafe: yes
 
-runtime_config:
-    python_version: 2
+handlers:
+- url: .*  # This regex directs all routes to main.app
+  script: notify.app
+
+libraries:
+- name: ssl
+  version: latest
+
+- name: MySQLdb
+  version: latest
