@@ -192,8 +192,9 @@ def show(message):
 
 @bot.message_handler(func=lambda message: message.text == u"Подписаться")
 def command_text_notify(message):
+    return u'subscribe', 200
     notify(message)
-
+    
 @bot.message_handler(func=lambda message: message.text == u"Отписаться")
 def command_text_notify(message):
     unnotify(message)
@@ -210,12 +211,15 @@ def command_text_notify(message):
 def command_text_notify(message):
     start(message)
 
-@app.route("/bot", methods=['POST'])
+@app.route(config.WEBHOOK_URL_PATH, methods=['POST'])
 def getMessage():
     bot.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode("utf-8"))])
     return "!", 200
 
-@app.route("/")
+@app.route("/", methods=['GET', 'HEAD'])
+def index():
+    return 'ok', 200
+
 def webhook():
     bot.remove_webhook()
     time.sleep(3) #needed pause between commands
@@ -225,9 +229,9 @@ def webhook():
 def polling():
     bot.polling(none_stop=False, interval=2)
 
-if config.host == 'heroku':
+if config.host == 'gae':
     #устанавливать вебхук когда мы на хероку
-    app.run(host=config.WEBHOOK_LISTEN, port=config.WEBHOOK_PORT)
+    #app.run(host=config.WEBHOOK_LISTEN, port=config.WEBHOOK_PORT)
 
     webhook()
 elif config.host == 'local':

@@ -4,6 +4,4 @@ pyTelegramBotAPI
 flask
 dj-database-url
 psycopg2
-requests
-gunicorn
 Flask-SQLAlchemy

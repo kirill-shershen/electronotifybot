@@ -4,7 +4,7 @@ import os
 gae = 1 == 1
 if gae:
     import json
-    json_data = open('config.json').read()
+    json_data = open('/home/kxekxe/PowerNotify/config.json').read()
     config = json.loads(json_data)
 
 def get(name, default = ''):
