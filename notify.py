@@ -20,6 +20,12 @@ bot = telebot.TeleBot(config.token, threaded = False)
 
 user_dict = {}
 
+if config.heroku_debug:
+    logger.debug('remote debug')
+    sys.path.append('/app/pycharm-debug.egg')
+    import pydevd
+    pydevd.settrace(config.server_debug, port=config.port_debug, stdoutToServer=True, stderrToServer=True)
+
 def do_command(message):
     # getattr(sys.modules[__name__], cmds[message.text])(message)
     pass
