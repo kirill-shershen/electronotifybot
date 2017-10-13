@@ -7,7 +7,7 @@ import re
 
 
 logger = logger.logger()
-URL = os.environ.get('MRSKURL')
+URL = config.URL
 vary_strange_streets = [u'все', u'всё', u'быт', u'все улицы', u'все, кто будет обращаться', u'все объекты']
 
 
