@@ -4,7 +4,7 @@ import requests
 from bs4 import BeautifulSoup
 import os
 import re
-
+import config
 
 logger = logger.logger()
 URL = config.URL
@@ -31,7 +31,8 @@ class NotifyParser():
             soup = BeautifulSoup(r.text, 'html.parser')
             ls = soup.find_all('tr', id=re.compile('^ufid.*'))
             return ls
-        except:
+        except Exception as e:
+            logger.error(e)
             return []
 
     def get_all(self):
