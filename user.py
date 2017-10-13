@@ -5,6 +5,7 @@ import logger
 from models import ElectroOutage as eo
 from models import UserNotify as un
 from sqlalchemy.exc import SQLAlchemyError
+from main import db
 logger = logger.logger()
 
 
@@ -73,11 +74,11 @@ class Notify:
         self.show = False
 
     def save(self, user_id):
-        n = un(user_id, self.city, self.street, self.notify)
-        db.session.add(n)
         try:
+            n = un(user_id, self.city, self.street, self.notify)
+            db.session.add(n)
             db.session.commit()
-        except SQLAlchemyError as e:
+        except Exception as e:
             logger.error(e)
             db.session.rollback()
         self.id = n.ID

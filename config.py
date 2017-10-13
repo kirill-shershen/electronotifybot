@@ -19,7 +19,7 @@ def get(name, default = ''):
 token = get('token')
 db_url = get('DATABASE_URL')
 SQLALCHEMY_DATABASE_URI = db_url
-host = get('host')
+host = get('HOST')
 debug = get('debug') == 'True'
 heroku_debug = get('heroku_debug') == 'True'
 server_debug = get('server_debug')

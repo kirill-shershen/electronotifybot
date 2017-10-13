@@ -20,6 +20,12 @@ bot = telebot.TeleBot(config.token, threaded = False)
 
 user_dict = {}
 
+if config.heroku_debug:
+    logger.debug('remote debug')
+    sys.path.append('pycharm-debug.egg')
+    import pydevd
+    pydevd.settrace(config.server_debug, port=config.port_debug, stdoutToServer=True, stderrToServer=True)
+
 def do_command(message):
     # getattr(sys.modules[__name__], cmds[message.text])(message)
     pass
@@ -66,7 +72,7 @@ def start(message):
 @bot.message_handler(commands=['showmy'])
 def showmy(message):
     user_dict[message.chat.id] = u.User(message.chat.id)
-    ntf = user_dict[message.chat.id].notifies()
+    ntf = user_dict[message.chat.id].notifies
     mrkup = global_kbd()
     if not ntf:
         bot.send_message(message.chat.id, u'У вас пока нет подписок на уведомление', reply_markup = mrkup)
@@ -192,7 +198,6 @@ def show(message):
 
 @bot.message_handler(func=lambda message: message.text == u"Подписаться")
 def command_text_notify(message):
-    return u'subscribe', 200
     notify(message)
     
 @bot.message_handler(func=lambda message: message.text == u"Отписаться")
@@ -227,15 +232,15 @@ def webhook():
     return "!", 200
 
 def polling():
-    bot.polling(none_stop=False, interval=2)
+    bot.polling(none_stop=False, interval=5)
 
 if config.host == 'gae':
     #устанавливать вебхук когда мы на хероку
     #app.run(host=config.WEBHOOK_LISTEN, port=config.WEBHOOK_PORT)
 
     webhook()
-elif config.host == 'local':
-    bot.remove_webhook()
+elif config.host == u'local':
+    # bot.remove_webhook()
     t1_stop = threading.Event()
     t1 = threading.Thread(target=polling)
     t1.start()
