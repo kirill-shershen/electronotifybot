@@ -4,7 +4,7 @@ import os
 gae = 1 == 1
 if gae:
     import json
-    json_data = open('/home/kxekxe/PowerNotify/config.json').read()
+    json_data = open('config.json').read()
     config = json.loads(json_data)
 
 def get(name, default = ''):
@@ -29,9 +29,8 @@ except ValueError:
     port_debug = 0
 
 WEBHOOK_HOST = get('WEBHOOK_HOST')
-WEBHOOK_URL_PATH = '/bot'
 WEBHOOK_PORT = int(get('PORT', '5000'))
-WEBHOOK_LISTEN = '0.0.0.0'
+WEBHOOK_LISTEN = 'localhost'
 
-WEBHOOK_URL_BASE = "https://%s/%s"% (WEBHOOK_HOST,WEBHOOK_URL_PATH)
+WEBHOOK_URL_BASE = "https://%s"% (WEBHOOK_HOST)
 URL = get('MRSKURL')

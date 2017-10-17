@@ -225,10 +225,15 @@ def getMessage():
 def index():
     return 'ok', 200
 
+@app.route("/ngrok", methods=['GET', 'HEAD'])
+def ngrok():
+    return config.WEBHOOK_HOST, 200
+
+@app.route(config.WEBHOOK_URL_PATH, methods=['GET', 'HEAD'])
 def webhook():
     bot.remove_webhook()
     time.sleep(3) #needed pause between commands
-    bot.set_webhook(url=config.WEBHOOK_URL_BASE)
+    bot.set_webhook(url=config.WEBHOOK_URL_BASE + config.WEBHOOK_URL_PATH)
     return "!", 200
 
 def polling():
@@ -236,9 +241,10 @@ def polling():
 
 if config.host == 'gae':
     #устанавливать вебхук когда мы на хероку
-    #app.run(host=config.WEBHOOK_LISTEN, port=config.WEBHOOK_PORT)
-
     webhook()
+    app.run(host=config.WEBHOOK_LISTEN, port=config.WEBHOOK_PORT)
+
+
 elif config.host == u'local':
     # bot.remove_webhook()
     t1_stop = threading.Event()
