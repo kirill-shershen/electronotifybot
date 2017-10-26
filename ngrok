@@ -1,0 +1,15 @@
+[Unit]
+Description = ngrok daemon
+After=network.target
+
+[Service]
+User=abc
+RestartSec=10
+Restart=always
+Type=simple
+ExecStart=/home/orangepi/ngrok http 8443
+ExecStop=/usr/bin/killall ngrok
+
+
+[Install]
+WantedBy=multi-user.target
