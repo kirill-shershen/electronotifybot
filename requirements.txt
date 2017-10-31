@@ -3,5 +3,4 @@ requests
 pyTelegramBotAPI
 flask
 dj-database-url
-psycopg2
 Flask-SQLAlchemy

@@ -14,6 +14,8 @@ import config
 COLS = [u'Населенный пункт', u'Улица', u'Время отключения', u'Причина']
 cmds = {u'Подписаться':'notify', u'Отписаться':'unnotify', u'Помощь':'start', u'Показать ближайшее':'show', u'Показать по подписке':'showmy'}
 
+with open('/home/orangepi/electronotifybot/notify.pid', 'w+') as f:
+    f.write('%s\n' % str(os.getpid()))
 logger = logger.logger()
 
 bot = telebot.TeleBot(config.token, threaded = False)

@@ -36,11 +36,14 @@ def get_notify():
     #     dba.disconnect()
 
 def get_useroutage2(user_id = None):
-    logger.debug('get_useroutage')
-    if user_id:
-        return eo.query.filter(eo.UserNotify_ID == un.ID).filter(un.User_ID == user_id).all()
-    else:
-        return eo.query.all()
+    logger.info('get_useroutage')
+    try:
+        if user_id:
+            return eo.query.filter(eo.UserNotify_ID == un.ID).filter(un.User_ID == user_id).all()
+        else:
+            return eo.query.all()
+    except Exception as e:
+        logger.info(e)
 
 def get_useroutage(user_id = None):
     pass

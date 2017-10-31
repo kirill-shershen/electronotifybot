@@ -39,16 +39,19 @@ def check_ngrok():
 
 def start_notify():
     try:
-	try:
-	    with open(PIDFILE, 'r') as f:
-	        pid = int(f.read().strip())
-	except:
-	    pid = None
+        with open(PIDFILE, 'r') as f:
+            pid = int(f.read().strip())
+    except:
+        pid = None
+    try:
 	proc = '%s >> %s 2>>%s &' % (os.path.join(BASE_DIR, 'notify.py'),os.path.join(BASE_DIR,'notify.out'), os.path.join(BASE_DIR, 'notify.err'))
 	if pid:
    	    #kill old proccess
 	    logger.info('kill proc %s ' % proc)
 	    os.kill(pid, signal.SIGKILL)
+    except:
+	logger.warn('process not running')
+    try:
 	#start new
 	logger.info('start new proc %s' % proc)
     	#child = Popen(['python', proc], shell=True, stdout=PIPE, stderr=PIPE)
@@ -94,7 +97,7 @@ def main():
     check_config(ngrok, local)
 
 if __name__ == '__main__':
-    if sys.argv[1] == 'restart':
+    if len(sys.argv) > 1 and sys.argv[1] == 'restart':
 	start_notify()
     else:
     	main()

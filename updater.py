@@ -17,17 +17,17 @@ def main():
     ls = NotifyParser().get_all()
     if not ls:
         exit(0)
-    logger.debug(u'Чтение пользовательских настроек поиска')
+    logger.info(u'Чтение пользовательских настроек поиска')
     # usernotify = u.get_notify()
     usernotify = u.NotifyList()
     usernotify.load()
     #get all outage from db
-    logger.debug(u'Чтение уже созданных пользовательских уведомлений')
+    logger.info(u'Чтение уже созданных пользовательских уведомлений')
     # outage = u.get_useroutage()
     outage = u.OutageList()
     outage.load()
     #merge
-    logger.debug(u'создание списка уведомлений')
+    logger.info(u'создание списка уведомлений')
     # exist_list = {} # list of all notifies on site
     exist_list = []
     for notify in usernotify:
@@ -42,29 +42,29 @@ def main():
                             break
                     try:
                         if '.' in date_str:
-                            date_str = datetime.strptime(date_str, '%d.%m.%Y').strftime('%Y-%m-%d')
+                            date_str = datetime.strptime(date_str, '%d.%m.%Y')
                         else:
-                            date_str = datetime.strptime(date_str, '%d %m %Y').strftime('%Y-%m-%d')
+                            date_str = datetime.strptime(date_str, '%d %m %Y')
                     except:
                         logger.error(date_str)
                         continue
-                    o = u.Outage(0, notify.id, l[0].encode('utf8'), l[1].encode('utf8'), date_str.encode('utf8'), l[2].encode('utf8'), l[3].encode('utf8'))
+                    o = u.Outage(0, notify.id, l[0], l[1], date_str, l[2], l[3])
                     exist_list.append(o)
     if not exist_list:
         logger.info(u'Не найдено уведомлений для заданных настроек поиска')
     if exist_list:
         if len(outage) == 0:
-            logger.debug(u'Добавление новых')
+            logger.info(u'Добавление новых')
             for exist in exist_list:
                 exist.save()
         else:
             #add
-            logger.debug(u'Добавление новых')
+            logger.info(u'Добавление новых')
             for exist in exist_list:
-                if outage.find(exist.usernotify_id, exist.city, exist.street, exist.date, exist.strdate, exist.reason) == 0 and datetime.strptime(exist.date,'%Y-%m-%d').date() >= datetime.now().date():
+                if outage.find(exist.usernotify_id, exist.city, exist.street, exist.date, exist.strdate, exist.reason) == 0 and exist.date.date() >= datetime.now().date():
                     exist.save()
             #del
-            logger.debug(u'Удаление старых')
+            logger.info(u'Удаление старых')
             for out in outage:
                 if not out in exist_list:
                     out.delete()

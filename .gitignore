@@ -41,3 +41,7 @@ push.bat
 /logs
 pydevd_attach_to_process
 pip-selfcheck.json
+
+notify.pid
+notify.db
+config.json

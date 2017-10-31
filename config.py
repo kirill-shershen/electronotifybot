@@ -29,8 +29,11 @@ except ValueError:
     port_debug = 0
 
 WEBHOOK_HOST = get('WEBHOOK_HOST')
-WEBHOOK_PORT = int(get('PORT', '5000'))
+WEBHOOK_PORT = int(get('WEBHOOK_PORT', '5000'))
 WEBHOOK_LISTEN = 'localhost'
 
 WEBHOOK_URL_BASE = "https://%s"% (WEBHOOK_HOST)
 URL = get('MRSKURL')
+service_chat = get('service_chat')
+service_token = get('service_token')
+WEBHOOK_URL_PATH = '/bot'
