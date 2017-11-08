@@ -5,7 +5,7 @@ from datetime import datetime
 import telebot
 import user as u
 import config
-
+from models import db, UserNotify as un, ElectroOutage as eo
 
 logger = logger.logger()
 
@@ -13,43 +13,37 @@ class Scheduler():
 
     def __init__(self):
         self.events = {}
+        self.bot = telebot.TeleBot(config.token)
         self.prepare()
 
     def prepare(self):
-        usernotify = u.get_notify()
-        outage = u.get_useroutage()
-        date = datetime.now().date()
-        for user in usernotify:
-            self.events[user] = []
-            for row in outage:
-                for out in outage[row]:
-                    if abs((date - out[2]).days) == usernotify[user][3] and (usernotify[user][0] == row):
-                        self.events[user].append([out[0], out[1], out[3], out[4]])
+        #usernotify = u.get_notify()
+	#usernotify = u.NotifyList()
+	#usernotify.load()
+        #outage = u.get_useroutage()
+	#outage = u.OutageList()
+	#outage.load_all()
+	outage = db.session().query(eo.City, eo.Street, eo.Date, eo.StrDate, eo.Reason, un.User_ID, un.Notify).join((un, un.ID == eo.UserNotify_ID)).all()
+        date = datetime.now().replace(minute=0, hour=0, second=0, microsecond=0)
+        for row in outage:
+            if abs((date - row.Date).days) == row.Notify:
+                self.send(row.User_ID, (row.City, row.Street, row.StrDate, row.Reason))
 
-    def send(self):
-        if not self.events:
-            logger.info('nothing to send')
-            return 'nothing to send'
-
-        logger.info('sending messages...')
+    def send(self, user_id, msg):
         try:
-            bot = telebot.TeleBot(config.token)
-            for ev in self.events:
-                if self.events[ev]:
-                    for msg in self.events[ev]:
-                        bot.send_message(ev, 'Внимание отключение!\n\n'
-                                         'Населенный пункт: %s\n'
-                                         'Улица: %s\n'
-                                         'Время отключения: %s\n'
-                                         'Причина: %s\n' % (msg[0], msg[1], u.get_date(msg[2]), msg[3]))
-        except:
-            logger.error('something wrong')
+            self.bot.send_message(user_id, u'Внимание отключение!\n\n'
+                                      u'Населенный пункт: %s\n'
+                                      u'Улица: %s\n'
+                                      u'Время отключения: %s\n'
+                                      u'Причина: %s\n' % (msg))
+        except Exception as e:
+            logger.error('something wrong: %s' % e)
         logger.info('done')
 
 
 def main():
     sc = Scheduler()
-    sc.send()
+    #sc.send()
 
 if __name__ == '__main__':
     main()

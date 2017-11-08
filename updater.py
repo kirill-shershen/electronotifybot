@@ -29,7 +29,7 @@ def main():
     #merge
     logger.info(u'создание списка уведомлений')
     # exist_list = {} # list of all notifies on site
-    exist_list = []
+    exist_list = u.OutageList()
     for notify in usernotify:
         for l in ls:
             if notify.city.lower() in l[0].lower() and (notify.street.lower() in l[1].lower() or (notify.street.lower() == u'все')):
@@ -66,7 +66,7 @@ def main():
             #del
             logger.info(u'Удаление старых')
             for out in outage:
-                if not out in exist_list:
+                if exist_list.find(out.usernotify_id, out.city, out.street, out.date, out.strdate, out.reason) > 0:
                     out.delete()
 
     logger.info(u'Обновление завершено')
